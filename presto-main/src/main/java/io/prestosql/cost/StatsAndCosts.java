@@ -22,14 +22,16 @@ import io.prestosql.sql.planner.plan.PlanNode;
 import io.prestosql.sql.planner.plan.PlanNodeId;
 
 import java.util.Map;
+import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 
 public class StatsAndCosts
 {
-    private static final StatsAndCosts EMPTY = new StatsAndCosts(ImmutableMap.of(), ImmutableMap.of());
+    private static final StatsAndCosts EMPTY = new StatsAndCosts(ImmutableMap.of(), ImmutableMap.of(), ImmutableMap.of());
 
     private final Map<PlanNodeId, PlanNodeStatsEstimate> stats;
+    private final Map<PlanNodeId, PlanNodeCostEstimate> nodeCosts;
     private final Map<PlanNodeId, PlanNodeCostEstimate> cumulativeCosts;
 
     public static StatsAndCosts empty()
@@ -40,9 +42,11 @@ public class StatsAndCosts
     @JsonCreator
     public StatsAndCosts(
             @JsonProperty("stats") Map<PlanNodeId, PlanNodeStatsEstimate> stats,
+            @JsonProperty("nodeCosts") Map<PlanNodeId, PlanNodeCostEstimate> nodeCosts,
             @JsonProperty("cumulativeCosts") Map<PlanNodeId, PlanNodeCostEstimate> cumulativeCosts)
     {
         this.stats = ImmutableMap.copyOf(requireNonNull(stats, "stats is null"));
+        this.nodeCosts = ImmutableMap.copyOf(requireNonNull(nodeCosts, "nodeCosts is null"));
         this.cumulativeCosts = ImmutableMap.copyOf(requireNonNull(cumulativeCosts, "cumulativeCosts is null"));
     }
 
@@ -50,6 +54,12 @@ public class StatsAndCosts
     public Map<PlanNodeId, PlanNodeStatsEstimate> getStats()
     {
         return stats;
+    }
+
+    @JsonProperty
+    public Map<PlanNodeId, PlanNodeCostEstimate> getNodeCosts()
+    {
+        return nodeCosts;
     }
 
     @JsonProperty
@@ -63,28 +73,34 @@ public class StatsAndCosts
         Iterable<PlanNode> planIterator = Traverser.forTree(PlanNode::getSources)
                 .depthFirstPreOrder(root);
         ImmutableMap.Builder<PlanNodeId, PlanNodeStatsEstimate> filteredStats = ImmutableMap.builder();
+        ImmutableMap.Builder<PlanNodeId, PlanNodeCostEstimate> filteredNodeCosts = ImmutableMap.builder();
         ImmutableMap.Builder<PlanNodeId, PlanNodeCostEstimate> filteredCumulativeCosts = ImmutableMap.builder();
         for (PlanNode node : planIterator) {
             if (stats.containsKey(node.getId())) {
                 filteredStats.put(node.getId(), stats.get(node.getId()));
             }
+            if (nodeCosts.containsKey(node.getId())) {
+                filteredNodeCosts.put(node.getId(), nodeCosts.get(node.getId()));
+            }
             if (cumulativeCosts.containsKey(node.getId())) {
                 filteredCumulativeCosts.put(node.getId(), cumulativeCosts.get(node.getId()));
             }
         }
-        return new StatsAndCosts(filteredStats.build(), filteredCumulativeCosts.build());
+        return new StatsAndCosts(filteredStats.build(), filteredNodeCosts.build(), filteredCumulativeCosts.build());
     }
 
-    public static StatsAndCosts create(PlanNode root, StatsProvider statsProvider, CostProvider costProvider)
+    public static StatsAndCosts create(PlanNode root, StatsProvider statsProvider, Function<PlanNode, PlanNodeCostEstimate> nodeCostProvider, CostProvider costProvider)
     {
         Iterable<PlanNode> planIterator = Traverser.forTree(PlanNode::getSources)
                 .depthFirstPreOrder(root);
         ImmutableMap.Builder<PlanNodeId, PlanNodeStatsEstimate> stats = ImmutableMap.builder();
+        ImmutableMap.Builder<PlanNodeId, PlanNodeCostEstimate> nodeCosts = ImmutableMap.builder();
         ImmutableMap.Builder<PlanNodeId, PlanNodeCostEstimate> cumulativeCosts = ImmutableMap.builder();
         for (PlanNode node : planIterator) {
             stats.put(node.getId(), statsProvider.getStats(node));
+            nodeCosts.put(node.getId(), nodeCostProvider.apply(node));
             cumulativeCosts.put(node.getId(), costProvider.getCumulativeCost(node));
         }
-        return new StatsAndCosts(stats.build(), cumulativeCosts.build());
+        return new StatsAndCosts(stats.build(), nodeCosts.build(), cumulativeCosts.build());
     }
 }

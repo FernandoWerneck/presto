@@ -181,7 +181,12 @@ public class LogicalPlanner
         TypeProvider types = symbolAllocator.getTypes();
         StatsProvider statsProvider = new CachingStatsProvider(statsCalculator, session, types);
         CostProvider costProvider = new CachingCostProvider(costCalculator, statsProvider, Optional.empty(), session, types);
-        return new Plan(root, types, StatsAndCosts.create(root, statsProvider, costProvider));
+        StatsAndCosts statsAndCosts = StatsAndCosts.create(
+                root,
+                statsProvider,
+                planNode -> costCalculator.calculateCost(planNode, statsProvider, session, types),
+                costProvider);
+        return new Plan(root, types, statsAndCosts);
     }
 
     public PlanNode planStatement(Analysis analysis, Statement statement)

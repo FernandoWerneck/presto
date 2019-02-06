@@ -255,23 +255,26 @@ public class QueryMonitor
     private static StatsAndCosts reconstructStatsAndCosts(StageInfo stageInfo)
     {
         ImmutableMap.Builder<PlanNodeId, PlanNodeStatsEstimate> planNodeStats = ImmutableMap.builder();
+        ImmutableMap.Builder<PlanNodeId, PlanNodeCostEstimate> planNodeCosts = ImmutableMap.builder();
         ImmutableMap.Builder<PlanNodeId, PlanNodeCostEstimate> planNodeCumulativeCosts = ImmutableMap.builder();
-        reconstructStatsAndCosts(stageInfo, planNodeStats, planNodeCumulativeCosts);
-        return new StatsAndCosts(planNodeStats.build(), planNodeCumulativeCosts.build());
+        reconstructStatsAndCosts(stageInfo, planNodeStats, planNodeCosts, planNodeCumulativeCosts);
+        return new StatsAndCosts(planNodeStats.build(), planNodeCosts.build(), planNodeCumulativeCosts.build());
     }
 
     private static void reconstructStatsAndCosts(
             StageInfo stage,
             ImmutableMap.Builder<PlanNodeId, PlanNodeStatsEstimate> planNodeStats,
+            ImmutableMap.Builder<PlanNodeId, PlanNodeCostEstimate> planNodeCosts,
             ImmutableMap.Builder<PlanNodeId, PlanNodeCostEstimate> planNodeCumulativeCosts)
     {
         PlanFragment planFragment = stage.getPlan();
         if (planFragment != null) {
             planNodeStats.putAll(planFragment.getStatsAndCosts().getStats());
+            planNodeCosts.putAll(planFragment.getStatsAndCosts().getNodeCosts());
             planNodeCumulativeCosts.putAll(planFragment.getStatsAndCosts().getCumulativeCosts());
         }
         for (StageInfo subStage : stage.getSubStages()) {
-            reconstructStatsAndCosts(subStage, planNodeStats, planNodeCumulativeCosts);
+            reconstructStatsAndCosts(subStage, planNodeStats, planNodeCosts, planNodeCumulativeCosts);
         }
     }
 

@@ -442,7 +442,12 @@ public class TestCostCalculator
                 .collect(ImmutableMap.toImmutableMap(entry -> new Symbol(entry.getKey()), Map.Entry::getValue)));
         StatsProvider statsProvider = new CachingStatsProvider(statsCalculator(stats), session, typeProvider);
         CostProvider costProvider = new TestingCostProvider(costs, costCalculatorUsingExchanges, statsProvider, session, typeProvider);
-        SubPlan subPlan = fragment(new Plan(node, typeProvider, StatsAndCosts.create(node, statsProvider, costProvider)));
+        StatsAndCosts statsAndCosts = StatsAndCosts.create(
+                node,
+                statsProvider,
+                planNode -> costCalculatorUsingExchanges.calculateCost(planNode, statsProvider, session, typeProvider),
+                costProvider);
+        SubPlan subPlan = fragment(new Plan(node, typeProvider, statsAndCosts));
         return new CostAssertionBuilder(subPlan.getFragment().getStatsAndCosts().getCumulativeCosts().getOrDefault(node.getId(), PlanNodeCostEstimate.unknown()));
     }
 
@@ -566,7 +571,12 @@ public class TestCostCalculator
                 .collect(ImmutableMap.toImmutableMap(entry -> new Symbol(entry.getKey()), Map.Entry::getValue)));
         StatsProvider statsProvider = new CachingStatsProvider(statsCalculator, session, typeProvider);
         CostProvider costProvider = new CachingCostProvider(costCalculatorUsingExchanges, statsProvider, Optional.empty(), session, typeProvider);
-        SubPlan subPlan = fragment(new Plan(node, typeProvider, StatsAndCosts.create(node, statsProvider, costProvider)));
+        StatsAndCosts statsAndCosts = StatsAndCosts.create(
+                node,
+                statsProvider,
+                planNode -> costCalculatorUsingExchanges.calculateCost(planNode, statsProvider, session, typeProvider),
+                costProvider);
+        SubPlan subPlan = fragment(new Plan(node, typeProvider, statsAndCosts));
         return subPlan.getFragment().getStatsAndCosts().getCumulativeCosts().getOrDefault(node.getId(), PlanNodeCostEstimate.unknown());
     }
 

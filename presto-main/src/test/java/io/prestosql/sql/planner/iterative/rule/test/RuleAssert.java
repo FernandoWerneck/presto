@@ -193,7 +193,12 @@ public class RuleAssert
     {
         StatsProvider statsProvider = new CachingStatsProvider(statsCalculator, session, types);
         CostProvider costProvider = new CachingCostProvider(costCalculator, statsProvider, session, types);
-        return inTransaction(session -> textLogicalPlan(plan, types, metadata.getFunctionRegistry(), StatsAndCosts.create(plan, statsProvider, costProvider), session, 2, false));
+        StatsAndCosts statsAndCosts = StatsAndCosts.create(
+                plan,
+                statsProvider,
+                planNode -> costCalculator.calculateCost(planNode, statsProvider, session, types),
+                costProvider);
+        return inTransaction(session -> textLogicalPlan(plan, types, metadata.getFunctionRegistry(), statsAndCosts, session, 2, false));
     }
 
     private <T> T inTransaction(Function<Session, T> transactionSessionConsumer)
