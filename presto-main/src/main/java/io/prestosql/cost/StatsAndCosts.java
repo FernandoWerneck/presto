@@ -18,6 +18,8 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.graph.Traverser;
+import io.prestosql.execution.StageInfo;
+import io.prestosql.sql.planner.PlanFragment;
 import io.prestosql.sql.planner.plan.PlanNode;
 import io.prestosql.sql.planner.plan.PlanNodeId;
 
@@ -102,5 +104,31 @@ public class StatsAndCosts
             cumulativeCosts.put(node.getId(), costProvider.getCumulativeCost(node));
         }
         return new StatsAndCosts(stats.build(), nodeCosts.build(), cumulativeCosts.build());
+    }
+
+    public static StatsAndCosts create(StageInfo stageInfo)
+    {
+        ImmutableMap.Builder<PlanNodeId, PlanNodeStatsEstimate> planNodeStats = ImmutableMap.builder();
+        ImmutableMap.Builder<PlanNodeId, PlanNodeCostEstimate> planNodeCosts = ImmutableMap.builder();
+        ImmutableMap.Builder<PlanNodeId, PlanNodeCostEstimate> planNodeCumulativeCosts = ImmutableMap.builder();
+        reconstructStatsAndCosts(stageInfo, planNodeStats, planNodeCosts, planNodeCumulativeCosts);
+        return new StatsAndCosts(planNodeStats.build(), planNodeCosts.build(), planNodeCumulativeCosts.build());
+    }
+
+    private static void reconstructStatsAndCosts(
+            StageInfo stage,
+            ImmutableMap.Builder<PlanNodeId, PlanNodeStatsEstimate> planNodeStats,
+            ImmutableMap.Builder<PlanNodeId, PlanNodeCostEstimate> planNodeCosts,
+            ImmutableMap.Builder<PlanNodeId, PlanNodeCostEstimate> planNodeCumulativeCosts)
+    {
+        PlanFragment planFragment = stage.getPlan();
+        if (planFragment != null) {
+            planNodeStats.putAll(planFragment.getStatsAndCosts().getStats());
+            planNodeCosts.putAll(planFragment.getStatsAndCosts().getNodeCosts());
+            planNodeCumulativeCosts.putAll(planFragment.getStatsAndCosts().getCumulativeCosts());
+        }
+        for (StageInfo subStage : stage.getSubStages()) {
+            reconstructStatsAndCosts(subStage, planNodeStats, planNodeCosts, planNodeCumulativeCosts);
+        }
     }
 }
