@@ -443,7 +443,7 @@ public class TestCostCalculator
         StatsProvider statsProvider = new CachingStatsProvider(statsCalculator(stats), session, typeProvider);
         CostProvider costProvider = new TestingCostProvider(costs, costCalculatorUsingExchanges, statsProvider, session, typeProvider);
         SubPlan subPlan = fragment(new Plan(node, typeProvider, StatsAndCosts.create(node, statsProvider, costProvider)));
-        return new CostAssertionBuilder(subPlan.getFragment().getStatsAndCosts().getCosts().getOrDefault(node.getId(), PlanNodeCostEstimate.unknown()));
+        return new CostAssertionBuilder(subPlan.getFragment().getStatsAndCosts().getCumulativeCosts().getOrDefault(node.getId(), PlanNodeCostEstimate.unknown()));
     }
 
     private static class TestingCostProvider
@@ -567,7 +567,7 @@ public class TestCostCalculator
         StatsProvider statsProvider = new CachingStatsProvider(statsCalculator, session, typeProvider);
         CostProvider costProvider = new CachingCostProvider(costCalculatorUsingExchanges, statsProvider, Optional.empty(), session, typeProvider);
         SubPlan subPlan = fragment(new Plan(node, typeProvider, StatsAndCosts.create(node, statsProvider, costProvider)));
-        return subPlan.getFragment().getStatsAndCosts().getCosts().getOrDefault(node.getId(), PlanNodeCostEstimate.unknown());
+        return subPlan.getFragment().getStatsAndCosts().getCumulativeCosts().getOrDefault(node.getId(), PlanNodeCostEstimate.unknown());
     }
 
     private static class CostAssertionBuilder

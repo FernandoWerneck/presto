@@ -30,7 +30,7 @@ public class StatsAndCosts
     private static final StatsAndCosts EMPTY = new StatsAndCosts(ImmutableMap.of(), ImmutableMap.of());
 
     private final Map<PlanNodeId, PlanNodeStatsEstimate> stats;
-    private final Map<PlanNodeId, PlanNodeCostEstimate> costs;
+    private final Map<PlanNodeId, PlanNodeCostEstimate> cumulativeCosts;
 
     public static StatsAndCosts empty()
     {
@@ -40,10 +40,10 @@ public class StatsAndCosts
     @JsonCreator
     public StatsAndCosts(
             @JsonProperty("stats") Map<PlanNodeId, PlanNodeStatsEstimate> stats,
-            @JsonProperty("costs") Map<PlanNodeId, PlanNodeCostEstimate> costs)
+            @JsonProperty("cumulativeCosts") Map<PlanNodeId, PlanNodeCostEstimate> cumulativeCosts)
     {
         this.stats = ImmutableMap.copyOf(requireNonNull(stats, "stats is null"));
-        this.costs = ImmutableMap.copyOf(requireNonNull(costs, "costs is null"));
+        this.cumulativeCosts = ImmutableMap.copyOf(requireNonNull(cumulativeCosts, "cumulativeCosts is null"));
     }
 
     @JsonProperty
@@ -53,9 +53,9 @@ public class StatsAndCosts
     }
 
     @JsonProperty
-    public Map<PlanNodeId, PlanNodeCostEstimate> getCosts()
+    public Map<PlanNodeId, PlanNodeCostEstimate> getCumulativeCosts()
     {
-        return costs;
+        return cumulativeCosts;
     }
 
     public StatsAndCosts getForSubplan(PlanNode root)
@@ -63,16 +63,16 @@ public class StatsAndCosts
         Iterable<PlanNode> planIterator = Traverser.forTree(PlanNode::getSources)
                 .depthFirstPreOrder(root);
         ImmutableMap.Builder<PlanNodeId, PlanNodeStatsEstimate> filteredStats = ImmutableMap.builder();
-        ImmutableMap.Builder<PlanNodeId, PlanNodeCostEstimate> filteredCosts = ImmutableMap.builder();
+        ImmutableMap.Builder<PlanNodeId, PlanNodeCostEstimate> filteredCumulativeCosts = ImmutableMap.builder();
         for (PlanNode node : planIterator) {
             if (stats.containsKey(node.getId())) {
                 filteredStats.put(node.getId(), stats.get(node.getId()));
             }
-            if (costs.containsKey(node.getId())) {
-                filteredCosts.put(node.getId(), costs.get(node.getId()));
+            if (cumulativeCosts.containsKey(node.getId())) {
+                filteredCumulativeCosts.put(node.getId(), cumulativeCosts.get(node.getId()));
             }
         }
-        return new StatsAndCosts(filteredStats.build(), filteredCosts.build());
+        return new StatsAndCosts(filteredStats.build(), filteredCumulativeCosts.build());
     }
 
     public static StatsAndCosts create(PlanNode root, StatsProvider statsProvider, CostProvider costProvider)
@@ -80,11 +80,11 @@ public class StatsAndCosts
         Iterable<PlanNode> planIterator = Traverser.forTree(PlanNode::getSources)
                 .depthFirstPreOrder(root);
         ImmutableMap.Builder<PlanNodeId, PlanNodeStatsEstimate> stats = ImmutableMap.builder();
-        ImmutableMap.Builder<PlanNodeId, PlanNodeCostEstimate> costs = ImmutableMap.builder();
+        ImmutableMap.Builder<PlanNodeId, PlanNodeCostEstimate> cumulativeCosts = ImmutableMap.builder();
         for (PlanNode node : planIterator) {
             stats.put(node.getId(), statsProvider.getStats(node));
-            costs.put(node.getId(), costProvider.getCumulativeCost(node));
+            cumulativeCosts.put(node.getId(), costProvider.getCumulativeCost(node));
         }
-        return new StatsAndCosts(stats.build(), costs.build());
+        return new StatsAndCosts(stats.build(), cumulativeCosts.build());
     }
 }

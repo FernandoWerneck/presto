@@ -1409,14 +1409,14 @@ public class PlanPrinter
         private boolean isPlanNodeStatsAndCostsUnknown(PlanNode node)
         {
             PlanNodeStatsEstimate stats = estimatedStatsAndCosts.getStats().getOrDefault(node.getId(), PlanNodeStatsEstimate.unknown());
-            PlanNodeCostEstimate cost = estimatedStatsAndCosts.getCosts().getOrDefault(node.getId(), PlanNodeCostEstimate.unknown());
+            PlanNodeCostEstimate cost = estimatedStatsAndCosts.getCumulativeCosts().getOrDefault(node.getId(), PlanNodeCostEstimate.unknown());
             return stats.isOutputRowCountUnknown() || cost.equals(PlanNodeCostEstimate.unknown());
         }
 
         private String formatPlanNodeStatsAndCost(PlanNode node)
         {
             PlanNodeStatsEstimate stats = estimatedStatsAndCosts.getStats().getOrDefault(node.getId(), PlanNodeStatsEstimate.unknown());
-            PlanNodeCostEstimate cost = estimatedStatsAndCosts.getCosts().getOrDefault(node.getId(), PlanNodeCostEstimate.unknown());
+            PlanNodeCostEstimate cost = estimatedStatsAndCosts.getCumulativeCosts().getOrDefault(node.getId(), PlanNodeCostEstimate.unknown());
             return format("{rows: %s (%s), cpu: %s, memory: %s, network: %s}",
                     formatAsLong(stats.getOutputRowCount()),
                     formatEstimateAsDataSize(stats.getOutputSizeInBytes(node.getOutputSymbols(), types)),
