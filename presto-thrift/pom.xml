@@ -34,11 +34,6 @@
 
         <dependency>
             <groupId>io.airlift.drift</groupId>
-            <artifactId>drift-codec</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.airlift.drift</groupId>
             <artifactId>drift-protocol</artifactId>
         </dependency>
 

@@ -109,11 +109,5 @@
             <artifactId>presto-main</artifactId>
         </dependency>
 
-        <!-- for testing -->
-        <!-- testng comes as a transitive compile-time dependency from presto-tests even though we only only need tpch index part -->
-        <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-        </dependency>
     </dependencies>
 </project>
